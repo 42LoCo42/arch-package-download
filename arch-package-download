@@ -4,8 +4,14 @@ export LANG=C
 
 (($# < 1)) && echo "Usage: $0 <package>" >&2 && exit 1
 
+cleanup() {
+	# shellcheck disable=SC2181
+	[ "$?" != 0 ] && rm -f "$path" "$path.sig"
+}
+trap cleanup EXIT
+
 field() {
-	sed -En "s|^$1.*: (.*)$|\1|p"
+	sed -En "s|^$1.*: (.*)$|\1|p" | head -n1
 }
 
 # get package info
