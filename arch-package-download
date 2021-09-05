@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -e
+export LANG=C
+
+(($# < 1)) && echo "Usage: $0 <package>" >&2 && exit 1
+
+field() {
+	sed -En "s|^$1.*: (.*)$|\1|p"
+}
+
+# get package info
+info="$(pacman -Si "$1")"
+repo="$(field "Repository" <<< "$info")"
+version="$(field "Version" <<< "$info")"
+arch="$(field "Architecture" <<< "$info")"
+path="$1-$version-$arch.pkg.tar.zst"
+
+# create list of urls
+mapfile -t urls <<< "$(
+	sed -En 's|^Server = (https://.*)$|\1|p' "/etc/pacman.d/mirrorlist" \
+	| sed "s|\$repo|$repo|; s|\$arch|$arch|; s|$|/$path|" \
+)"
+
+# get package
+for u in "${urls[@]}"; do
+	if curl -LO "$u"; then break; fi
+done
+[ -f "$path" ]
+
+# get package signature
+for u in "${urls[@]}"; do
+	if curl -LO "$u.sig"; then break; fi
+done
+[ -f "$path.sig" ]
+
+# verify signature
+pacman-key -v "$path.sig"
