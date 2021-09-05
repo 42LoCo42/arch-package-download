@@ -5,8 +5,9 @@ export LANG=C
 (($# < 1)) && echo "Usage: $0 <package>" >&2 && exit 1
 
 cleanup() {
-	# shellcheck disable=SC2181
-	[ "$?" != 0 ] && rm -f "$path" "$path.sig"
+	local status="$?"
+	((status != 0)) && rm -f "$path" "$path.sig"
+	return $status
 }
 trap cleanup EXIT
 
